@@ -1,0 +1,57 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+
+np.random.seed(0)
+days = 365
+
+data = pd.DataFrame({
+    "cases": np.random.randint(0, 50, days),
+    "temperature": np.random.uniform(20, 35, days),
+    "humidity": np.random.uniform(40, 80, days),
+    "mobility": np.random.uniform(50, 120, days)
+})
+
+# Create target label: outbreak if cases > mean + std
+threshold = data["cases"].mean() + data["cases"].std()
+data["outbreak"] = (data["cases"] > threshold).astype(int)
+
+# Lag feature (yesterday’s cases)
+data["lag_1"] = data["cases"].shift(1)
+data = data.dropna()
+
+# ---------------------------
+# 2. Prepare Data
+# ---------------------------
+X = data[["temperature", "humidity", "mobility", "lag_1"]]
+y = data["outbreak"]
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)
+
+# ---------------------------
+# 3. Train Models
+# ---------------------------
+models = {
+    "Logistic Regression": LogisticRegression(),
+    "Random Forest": RandomForestClassifier(),
+    "SVM": SVC()
+}
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+
+    print(f"\n{name}")
+    print("Accuracy:", accuracy_score(y_test, preds))
+    print("Precision:", precision_score(y_test, preds))
+    print("Recall:", recall_score(y_test, preds))
+    print("F1 Score:", f1_score(y_test, preds))
